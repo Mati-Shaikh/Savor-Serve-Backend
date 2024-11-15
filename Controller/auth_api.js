@@ -2,7 +2,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
-const Student = require('../models/Student.schema')
+const User = require('../models/User.schema')
 
 const generateToken = (user) => {
   const payload = {
@@ -18,7 +18,7 @@ const generateToken = (user) => {
 let RegisterUser = async (req, res) => {
   try {
 
-    const existingUser = await Student.findOne({ Email: req.body.Email });
+    const existingUser = await User.findOne({ Email: req.body.Email });
     
     if (existingUser) {
       return res.status(400).json({ message: "You already have an account. Please Login" });
@@ -26,7 +26,7 @@ let RegisterUser = async (req, res) => {
     
     const salt = await bcrypt.genSalt(10);
     const hashedPass = await bcrypt.hash(req.body.Password, salt);
-    const newUser = new Student({
+    const newUser = new User({
       FirstName: req.body.FirstName,
       LastName: req.body.LastName,
       Email: req.body.Email,
@@ -34,7 +34,7 @@ let RegisterUser = async (req, res) => {
       Age: req.body.Age
     });
 
-    const user = await Student.create(newUser);
+    const user = await User.create(newUser);
 
     const token = generateToken(user);
     
@@ -56,7 +56,7 @@ let RegisterUser = async (req, res) => {
 let DuplicateUser = async (req, res) => {
   try {
 
-    const existingUser = await Student.findOne({ Email: req.body.Email });
+    const existingUser = await User.findOne({ Email: req.body.Email });
     
     if (existingUser) {
       return res.status(400).json({ message: "You already have an account. Please Login" });
@@ -75,7 +75,7 @@ let GoogleAuth = async (req, res) => {
     const { email, name, googleId } = req.body;
 
     // Check if user already exists
-    let user = await Student.findOne({ Email: email });
+    let user = await User.findOne({ Email: email });
 
 
     const [firstName, ...lastNameParts] = name.split(" ");
@@ -87,7 +87,7 @@ let GoogleAuth = async (req, res) => {
 
     if (!user) {
       // Create a new user if they don't exist
-      user = new Student({
+      user = new User({
         Email: email,
         FirstName: firstName,
         LastName: lastName,
@@ -121,7 +121,7 @@ let GoogleAuth = async (req, res) => {
 
 let LoginUser = async (req, res) => {
   try {
-    const user = await Student.findOne({ Email: req.body.Email });
+    const user = await User.findOne({ Email: req.body.Email });
 
     if (!user) {
       // If user is not found, return an appropriate response
@@ -157,7 +157,7 @@ let LoginUser = async (req, res) => {
 
 let VerifyUserCredentials = async (req, res) => {
   try {
-    const user = await Student.findOne({ Email: req.body.Email });
+    const user = await User.findOne({ Email: req.body.Email });
 
     if (!user) {
       // If user is not found
@@ -238,7 +238,7 @@ const VerifyPIN = async (req, res) => {
   const { email, pin } = req.body;
 
   try {
-    const user = await Student.findOne({ Email:email, resetPin: pin, pinExpires: { $gt: Date.now() } });
+    const user = await User.findOne({ Email:email, resetPin: pin, pinExpires: { $gt: Date.now() } });
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid or expired PIN' });
@@ -254,7 +254,7 @@ const VerifyPIN = async (req, res) => {
 
 const UpdateUserPassword = async (req, res) => {
   try {
-    const user = await Student.findOne({ Email: req.body.Email });
+    const user = await User.findOne({ Email: req.body.Email });
 
     if (!user) {
       // If user is not found
@@ -296,7 +296,7 @@ let GetUserProfile = async (req,res) =>{
   const userId = res.locals.userId; // Assuming your middleware sets the user ID in req.user
 
   try {
-    const userProfile = await Student.findById(userId);
+    const userProfile = await User.findById(userId);
 
     if (!userProfile) {
       return res.status(404).json({ message: 'User profile not found' });
@@ -317,7 +317,7 @@ let UpdateUserProfile = async (req, res) => {
   let data = req.body;
 
   try {
-    let user = await Student.findByIdAndUpdate(id, data, { new: true });
+    let user = await User.findByIdAndUpdate(id, data, { new: true });
 
     if (user) {
       res.status(200).json(user);
