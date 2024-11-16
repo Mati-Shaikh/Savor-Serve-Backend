@@ -4,10 +4,12 @@ const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const User = require('../models/User.schema')
 
+
 const generateToken = (user) => {
   const payload = {
     _id: user._id,
-    FullName: user.FirstName + " " + user.LastName,
+    FullName: `${user.FirstName} ${user.LastName}`,
+    Role: user.Role, // Include Role in the token
   };
 
   return jwt.sign(payload, process.env.JWT_SECRET, {
@@ -15,42 +17,53 @@ const generateToken = (user) => {
   });
 };
 
-let RegisterUser = async (req, res) => {
+const RegisterUser = async (req, res) => {
   try {
+    const { FirstName, LastName, Email, Password, PhoneNumber, Role } = req.body;
 
-    const existingUser = await User.findOne({ Email: req.body.Email });
-    
+    // Check if the user already exists
+    const existingUser = await User.findOne({ Email });
     if (existingUser) {
-      return res.status(400).json({ message: "You already have an account. Please Login" });
+      return res.status(400).json({ message: "You already have an account. Please Login." });
     }
-    
+
+    // Validate Role
+    const validRoles = ["NGO", "Donor", "GroceryShop", "Admin"];
+    if (!validRoles.includes(Role)) {
+      return res.status(400).json({ message: "Invalid role specified." });
+    }
+
+    // Hash the password
     const salt = await bcrypt.genSalt(10);
-    const hashedPass = await bcrypt.hash(req.body.Password, salt);
+    const hashedPass = await bcrypt.hash(Password, salt);
+
+    // Create a new user
     const newUser = new User({
-      FirstName: req.body.FirstName,
-      LastName: req.body.LastName,
-      Email: req.body.Email,
+      FirstName,
+      LastName,
+      Email,
       Password: hashedPass,
-      Age: req.body.Age
+      PhoneNumber,
+      Role, // Store the role
     });
 
     const user = await User.create(newUser);
 
+    // Generate a JWT token
     const token = generateToken(user);
-    
-    res.status(200).json({
-      token,  // JWT token
-      user: {
-        _id: user._id,       // Return user ID
-        FullName: user.FirstName + " " + user.LastName  // Return full name
-      }
-    });
 
+    res.status(200).json({
+      token, // JWT token
+      user: {
+        _id: user._id, // Return user ID
+        FullName: `${user.FirstName} ${user.LastName}`, // Return full name
+        Role: user.Role, // Return role
+      },
+    });
   } catch (err) {
-    res.status(500).json(err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 
 
 let DuplicateUser = async (req, res) => {
@@ -72,18 +85,23 @@ let DuplicateUser = async (req, res) => {
 
 let GoogleAuth = async (req, res) => {
   try {
-    const { email, name, googleId } = req.body;
+    const { email, name, googleId, role } = req.body;
+
+    // Validate Role
+    const validRoles = ["NGO", "Donor", "GroceryShop", "Admin"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role specified." });
+    }
 
     // Check if user already exists
     let user = await User.findOne({ Email: email });
 
-
     const [firstName, ...lastNameParts] = name.split(" ");
     const lastName = lastNameParts.join(" ");
 
-    const randomPassword = crypto.randomBytes(8).toString('hex'); 
-    const salt = await bcrypt.genSalt(10); 
-    const hashedPass = await bcrypt.hash(randomPassword, salt); 
+    const randomPassword = crypto.randomBytes(8).toString("hex"); // Generate a random password
+    const salt = await bcrypt.genSalt(10); // Generate salt for hashing
+    const hashedPass = await bcrypt.hash(randomPassword, salt); // Hash the password
 
     if (!user) {
       // Create a new user if they don't exist
@@ -93,6 +111,7 @@ let GoogleAuth = async (req, res) => {
         LastName: lastName,
         googleId,
         Password: hashedPass,
+        Role: role, // Assign the role
       });
       await user.save();
     } else {
@@ -102,18 +121,18 @@ let GoogleAuth = async (req, res) => {
       }
     }
 
-    const token = generateToken(user);
-    
-    res.status(200).json({
-      token,  // JWT token
-      user: {
-        _id: user._id,       // Return user ID
-        FullName: user.FirstName + " " + user.LastName  // Return full name
-      }
-    });
+    const token = generateToken(user); // Generate a token with the Role included
 
+    res.status(200).json({
+      token, // JWT token
+      user: {
+        _id: user._id, // Return user ID
+        FullName: `${user.FirstName} ${user.LastName}`, // Return full name
+        Role: user.Role, // Return role
+      },
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Authentication failed'});
+    res.status(500).json({ message: "Authentication failed", error: error.message });
   }
 };
 
@@ -121,39 +140,49 @@ let GoogleAuth = async (req, res) => {
 
 let LoginUser = async (req, res) => {
   try {
+    // Find user by email
     const user = await User.findOne({ Email: req.body.Email });
 
+    // If user is not found, return an appropriate response
     if (!user) {
-      // If user is not found, return an appropriate response
-      return res.status(400).json("Wrong credentials!");
+      return res.status(400).json({ message: "Wrong credentials!" });
     }
 
+    // Compare provided password with stored hashed password
     const validated = await bcrypt.compare(req.body.Password, user.Password);
 
+    // If password is incorrect, return an appropriate response
     if (!validated) {
-      // If password is incorrect, return an appropriate response
-      return res.status(400).json("Wrong credentials!");
+      return res.status(400).json({ message: "Wrong credentials!" });
     }
 
-    const token = generateToken(user);
+    // Generate token with role included
+    const token = jwt.sign(
+      {
+        _id: user._id,
+        FullName: `${user.FirstName} ${user.LastName}`,
+        Role: user.Role, // Include Role in token
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
-    
-
+    // Respond with token and user information
     res.status(200).json({
-      token,  // JWT token
+      token, // JWT token
       user: {
-        _id: user._id,       // Return user ID
-        FullName: user.FirstName + " " + user.LastName  // Return full name
-      }
+        _id: user._id,
+        FullName: `${user.FirstName} ${user.LastName}`, // Full name
+        Role: user.Role, // Role for dashboard rendering
+      },
     });
-
-
   } catch (err) {
-    // Handle other errors, e.g., database connection issues
+    // Handle errors
     console.error(err);
-    res.status(500).json("Internal server error happens");
+    res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 let VerifyUserCredentials = async (req, res) => {
   try {
