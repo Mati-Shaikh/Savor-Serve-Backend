@@ -12,6 +12,7 @@ const {RegisterUser, LoginUser, VerifyUserCredentials, UpdateUserPassword, Verif
  router.post('/verifyPIN', VerifyPIN);
  router.post('/updatePassword', UpdateUserPassword);
  router.post('/protectedRoute', verifyToken, ProtectedRoute);
+ 
  router.post('/getProfile', verifyToken, GetUserProfile);
  router.post('/updateProfile', verifyToken, UpdateUserProfile);
 

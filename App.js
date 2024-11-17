@@ -3,6 +3,7 @@ const app = express();
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const authRoute = require("./routes/auth");
+const DonorRoutes = require('./routes/donorRoutes');
 const cors = require("cors");
 
 dotenv.config();
@@ -21,6 +22,7 @@ mongoose
 
 // Routes
 app.use("/api/auth", authRoute);
+app.use("/api/donor", DonorRoutes);
 
 // Start the server
 app.listen(process.env.PORT, () => {
