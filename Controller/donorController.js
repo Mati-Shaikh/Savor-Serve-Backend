@@ -2,6 +2,7 @@ const User = require("../models/User.schema");
 const Wallet = require("../models/Wallet.Schema");
 const Donation = require("../models/Donation.Schema");
 const ImpacteeRequest = require("../models/Impactee.Schema");
+const NeedyIndividual = require('../models/NeedyIndividuals.Schema');
 
 // Fetch donor profile
 const getDonorProfile = async (req, res) => {
@@ -94,6 +95,50 @@ let makeDonation = async (req, res) => {
   } catch (error) {
     console.error("Error making donation:", error.message);
     res.status(500).json({ error: "Failed to make donation.", details: error.message });
+  }
+};
+
+const donateToNGO = async (req, res) => {
+  try {
+    const { amount, impacteeId } = req.body;
+
+    // Check if the impactee (needy individual) exists
+    const impactee = await NeedyIndividual.findById(impacteeId);
+    if (!impactee) {
+      return res.status(404).json({ error: "Needy individual not found" });
+    }
+
+    // Check if the impactee is associated with an NGO
+    const ngo = await NGO.findById(impactee.ngo); // impactee has ngo field
+    if (!ngo) {
+      return res.status(404).json({ error: "This needy individual is not linked to an NGO" });
+    }
+
+    // Check if the donor has a wallet and sufficient balance
+    const wallet = await Wallet.findOne({ userId: res.locals.userId });
+    if (!wallet || wallet.balance < amount) {
+      return res.status(400).json({ error: "Insufficient balance or wallet not found" });
+    }
+
+    // Deduct from wallet and add the donation to the NGO
+    wallet.balance -= amount;
+    wallet.transactions.push({ type: "donation", amount });
+    await wallet.save();
+
+    // Create a new donation record
+    const donation = new Donation({
+      donorId: res.locals.userId,
+      impacteeId,
+      ngoId: ngo._id, // Associated with the NGO through the impactee
+      amount,
+      status: "Pending",
+    });
+    await donation.save();
+
+    res.status(200).json({ message: "Donation successful", donation });
+  } catch (error) {
+    console.error("Error making donation:", error);
+    res.status(500).json({ error: "Failed to make donation", details: error.message });
   }
 };
 
@@ -229,4 +274,5 @@ module.exports = {
   withdrawWalletAmount,
   getImpactees,
   getDonorDonations,
+  donateToNGO
 };

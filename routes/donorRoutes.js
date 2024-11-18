@@ -13,6 +13,7 @@ const {
   withdrawWalletAmount,
   getImpactees,
   getDonorDonations,
+  donateToNGO
 } = require("../Controller/donorController");
 
 // Define routes
@@ -21,6 +22,7 @@ router.put("/profile", verifyToken, checkRole(["Donor"]), updateDonorProfile);
 
 router.get("/wallet", verifyToken, checkRole(["Donor"]), getWallet);
 router.post("/wallet/donate", verifyToken, checkRole(["Donor"]), makeDonation);
+router.post("/wallet/donatetoNGO", verifyToken, checkRole(["Donor"]), donateToNGO);
 
 router.post("/wallet/add", verifyToken, checkRole(["Donor"]), addWalletAmount);
 router.post("/wallet/withdraw", verifyToken, checkRole(["Donor"]), withdrawWalletAmount);

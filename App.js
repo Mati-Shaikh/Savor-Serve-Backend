@@ -7,6 +7,7 @@ const DonorRoutes = require('./routes/donorRoutes');
 const NGORoutes = require('./routes/ngoRoutes');
 const SupplierRoutes = require('./routes/supplierRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
+const NeedyIndividual = require('./routes/needyIndividualRoutes');
 const cors = require("cors");
 
 dotenv.config();
@@ -29,6 +30,7 @@ app.use("/api/donor", DonorRoutes);
 app.use("/api/ngo", NGORoutes);
 app.use("/api/supplier", SupplierRoutes);
 app.use("/api/admin", AdminRoutes);
+app.use("/api/needyInd",NeedyIndividual);
 
 // Start the server
 app.listen(process.env.PORT, () => {
