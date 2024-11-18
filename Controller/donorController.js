@@ -108,6 +108,102 @@ let getDonationHistory = async (req, res) => {
     }
   };
   
+// Add amount to the wallet
+const addWalletAmount = async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
+
+    // Ensure wallet is fetched correctly
+    const wallet = await Wallet.findOne({ userId: res.locals.userId });
+
+    if (!wallet) {
+      return res.status(404).json({ error: "Wallet not found" });
+    }
+
+    wallet.balance += amount;
+    wallet.transactions.push({ type: "credit", amount });
+    await wallet.save();
+
+    res.status(200).json({ message: "Amount added successfully", wallet });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to add amount" });
+  }
+};
 
 
-module.exports = { getDonorProfile, updateDonorProfile, getWallet,makeDonation , addImpacteeRequest, getDonationHistory};
+// Withdraw amount from the wallet
+const withdrawWalletAmount = async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    if (amount <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
+
+    const wallet = await Wallet.findOne({ userId: res.locals.userId });
+
+    if (!wallet) {
+      return res.status(404).json({ error: "Wallet not found" });
+    }
+
+    if (wallet.balance < amount) {
+      return res.status(400).json({ error: "Insufficient balance" });
+    }
+
+    wallet.balance -= amount;
+    wallet.transactions.push({ type: "debit", amount });
+    await wallet.save();
+
+    res.status(200).json({ message: "Amount withdrawn successfully", wallet });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to withdraw amount" });
+  }
+};
+
+// Get impactees created by the donor
+const getImpactees = async (req, res) => {
+  try {
+    const impactees = await ImpacteeRequest.find({ donorId: res.locals.userId });
+
+    if (!impactees.length) {
+      return res.status(404).json({ message: "No impactees found" });
+    }
+
+    res.status(200).json(impactees);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch impactees" });
+  }
+};
+
+// Get all donations made by the donor
+const getDonorDonations = async (req, res) => {
+  try {
+    const donations = await Donation.find({ donorId: res.locals.userId }).populate("impacteeId");
+
+    if (!donations.length) {
+      return res.status(404).json({ message: "No donations found" });
+    }
+
+    res.status(200).json(donations);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch donations" });
+  }
+};
+
+module.exports = {
+  getDonorProfile,
+  updateDonorProfile,
+  getWallet,
+  makeDonation,
+  addImpacteeRequest,
+  getDonationHistory,
+  addWalletAmount,
+  withdrawWalletAmount,
+  getImpactees,
+  getDonorDonations,
+};

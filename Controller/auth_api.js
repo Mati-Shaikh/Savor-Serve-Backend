@@ -2,7 +2,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
-const User = require('../models/User.schema')
+const User = require('../models/User.schema');
+const Wallet = require('../models/Wallet.Schema');
 
 
 const generateToken = (user) => {
@@ -48,6 +49,10 @@ const RegisterUser = async (req, res) => {
     });
 
     const user = await User.create(newUser);
+
+    // Automatically create a wallet for the user
+    await Wallet.create({ userId: user._id });
+
 
     // Generate a JWT token
     const token = generateToken(user);

@@ -1,5 +1,6 @@
 const router = require("express").Router();
-const verifyToken = require("./authentication");
+const verifyToken = require("../middlewares/authentication");
+const checkRole = require("../middlewares/checkRole"); // Import the checkRole middleware
 
 const {
   getDonorProfile,
@@ -8,16 +9,26 @@ const {
   makeDonation,
   addImpacteeRequest,
   getDonationHistory,
+  addWalletAmount,
+  withdrawWalletAmount,
+  getImpactees,
+  getDonorDonations,
 } = require("../Controller/donorController");
 
 // Define routes
-router.get("/profile", verifyToken, getDonorProfile);
-router.put("/profile", verifyToken, updateDonorProfile);
+router.get("/profile", verifyToken, checkRole(["Donor"]), getDonorProfile);
+router.put("/profile", verifyToken, checkRole(["Donor"]), updateDonorProfile);
 
-router.get("/wallet", verifyToken, getWallet);
-router.post("/wallet/donate", verifyToken, makeDonation);
+router.get("/wallet", verifyToken, checkRole(["Donor"]), getWallet);
+router.post("/wallet/donate", verifyToken, checkRole(["Donor"]), makeDonation);
 
-router.post("/impactee-request", verifyToken, addImpacteeRequest);
-router.get("/donations", verifyToken, getDonationHistory);
+router.post("/wallet/add", verifyToken, checkRole(["Donor"]), addWalletAmount);
+router.post("/wallet/withdraw", verifyToken, checkRole(["Donor"]), withdrawWalletAmount);
+
+router.post("/impactee-request", verifyToken, checkRole(["Donor"]), addImpacteeRequest);
+router.get("/impactees", verifyToken, checkRole(["Donor"]), getImpactees);
+
+router.get("/donations", verifyToken, checkRole(["Donor"]), getDonationHistory);
+router.get("/donor-donations", verifyToken, checkRole(["Donor"]), getDonorDonations);
 
 module.exports = router;
