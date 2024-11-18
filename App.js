@@ -5,6 +5,8 @@ const mongoose = require("mongoose");
 const authRoute = require("./routes/auth");
 const DonorRoutes = require('./routes/donorRoutes');
 const NGORoutes = require('./routes/ngoRoutes');
+const SupplierRoutes = require('./routes/supplierRoutes');
+const AdminRoutes = require('./routes/adminRoutes');
 const cors = require("cors");
 
 dotenv.config();
@@ -25,6 +27,8 @@ mongoose
 app.use("/api/auth", authRoute);
 app.use("/api/donor", DonorRoutes);
 app.use("/api/ngo", NGORoutes);
+app.use("/api/supplier", SupplierRoutes);
+app.use("/api/admin", AdminRoutes);
 
 // Start the server
 app.listen(process.env.PORT, () => {

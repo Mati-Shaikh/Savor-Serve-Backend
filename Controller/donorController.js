@@ -53,27 +53,50 @@ let getWallet = async (req, res) => {
 
 // Make a donation
 let makeDonation = async (req, res) => {
-    try {
-      const { amount, impacteeId } = req.body;
-      const wallet = await Wallet.findOne({ userId: res.locals.userId }); // Use res.locals.userId
-  
-      if (!wallet || wallet.balance < amount) {
-        return res.status(400).json({ error: "Insufficient balance or wallet not found." });
-      }
-  
-      wallet.balance -= amount;
-      wallet.transactions.push({ type: "donation", amount });
-      await wallet.save();
-  
-      const donation = new Donation({ donorId: res.locals.userId, impacteeId, amount }); // Use res.locals.userId
-      await donation.save();
-  
-      res.status(200).json({ message: "Donation successful." });
-    } catch (error) {
-      console.error("Error making donation:", error);
-      res.status(500).json({ error: "Failed to make donation." });
+  try {
+    const { amount, impacteeId } = req.body;
+
+    // Check if the impactee exists and is approved
+    const impactee = await ImpacteeRequest.findById(impacteeId);
+    if (!impactee) {
+      return res.status(404).json({ error: "Impactee not found." });
     }
-  };
+    if (impactee.status !== "Approved") {
+      return res.status(400).json({ error: "Impactee is not approved for donations." });
+    }
+
+    // Find the donor's wallet
+    const wallet = await Wallet.findOne({ userId: res.locals.userId });
+    if (!wallet) {
+      return res.status(404).json({ error: "Wallet not found." });
+    }
+
+    // Ensure sufficient balance
+    if (wallet.balance < amount) {
+      return res.status(400).json({ error: "Insufficient balance." });
+    }
+
+    // Deduct the amount and save the wallet
+    wallet.balance -= amount;
+    wallet.transactions.push({ type: "donation", amount });  // "donation" is added as a valid enum
+    await wallet.save();
+
+    // Create a new donation record
+    const donation = new Donation({
+      donorId: res.locals.userId,
+      impacteeId,
+      amount,
+      status: "Pending", // Donations can have statuses for further processing
+    });
+    await donation.save();
+
+    res.status(200).json({ message: "Donation successful.", donation });
+  } catch (error) {
+    console.error("Error making donation:", error.message);
+    res.status(500).json({ error: "Failed to make donation.", details: error.message });
+  }
+};
+
   
   let addImpacteeRequest = async (req, res) => {
     try {

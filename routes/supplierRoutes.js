@@ -12,14 +12,14 @@ const {
 } = require("../Controller/grocerySupplierController");
 
 // Supplier Registration & Account Setup
-router.post("/register", verifyToken, checkRole(["Supplier"]), registerSupplier);
-router.put("/update-store", verifyToken, checkRole(["Supplier"]), updateStoreDetails);
+router.post("/register", verifyToken, checkRole(["GroceryShop"]), registerSupplier);
+router.put("/update-store", verifyToken, checkRole(["GroceryShop"]), updateStoreDetails);
 
 // Voucher Redemption System
-router.post("/redeem-voucher", verifyToken, checkRole(["Supplier"]), redeemVoucher);
+router.post("/redeem-voucher", verifyToken, checkRole(["GroceryShop"]), redeemVoucher);
 
 // Transaction History & Record Keeping
-router.post("/add-transaction", verifyToken, checkRole(["Supplier"]), addTransaction);
-router.get("/transaction-history", verifyToken, checkRole(["Supplier"]), getTransactionHistory);
+router.post("/add-transaction", verifyToken, checkRole(["GroceryShop"]), addTransaction);
+router.get("/transaction-history", verifyToken, checkRole(["GroceryShop"]), getTransactionHistory);
 
 module.exports = router;
