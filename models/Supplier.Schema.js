@@ -16,6 +16,13 @@ const supplierSchema = mongoose.Schema(
       routingNumber: { type: String, required: true },
     },
     isStoreVisible: { type: Boolean, default: false },
+    donations: [
+      {
+        donorId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        amount: { type: Number, required: true },
+        date: { type: Date, default: Date.now },
+      },
+    ], // Track donations to the supplier
   },
   { timestamps: true }
 );

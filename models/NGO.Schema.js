@@ -37,6 +37,13 @@ const ngoSchema = mongoose.Schema(
         cnic: { type: String, unique: true, required: true },
       },
     ],
+    donations: [
+      {
+        donorId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        amount: { type: Number, required: true },
+        date: { type: Date, default: Date.now },
+      },
+    ], // Track donations to the NGO
   },
   { timestamps: true }
 );

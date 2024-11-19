@@ -3,6 +3,29 @@ const Wallet = require("../models/Wallet.Schema");
 const Donation = require("../models/Donation.Schema");
 const ImpacteeRequest = require("../models/Impactee.Schema");
 const NeedyIndividual = require('../models/NeedyIndividuals.Schema');
+const NGO = require('../models/NGO.Schema');    // Model for NGOs
+const Supplier = require('../models/Supplier.Schema');  // Model for Grocery Suppliers
+
+
+// Get all registered NGOs
+const getAllNGOs = async (req, res) => {
+  try {
+    const ngos = await NGO.find();
+    res.status(200).json({ ngos });
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching NGOs', details: error.message });
+  }
+};
+
+// Get all grocery suppliers (shops)
+const getAllSuppliers = async (req, res) => {
+  try {
+    const suppliers = await Supplier.find();
+    res.status(200).json({ suppliers });
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching suppliers', details: error.message });
+  }
+};
 
 // Fetch donor profile
 const getDonorProfile = async (req, res) => {
@@ -98,49 +121,6 @@ let makeDonation = async (req, res) => {
   }
 };
 
-const donateToNGO = async (req, res) => {
-  try {
-    const { amount, impacteeId } = req.body;
-
-    // Check if the impactee (needy individual) exists
-    const impactee = await NeedyIndividual.findById(impacteeId);
-    if (!impactee) {
-      return res.status(404).json({ error: "Needy individual not found" });
-    }
-
-    // Check if the impactee is associated with an NGO
-    const ngo = await NGO.findById(impactee.ngo); // impactee has ngo field
-    if (!ngo) {
-      return res.status(404).json({ error: "This needy individual is not linked to an NGO" });
-    }
-
-    // Check if the donor has a wallet and sufficient balance
-    const wallet = await Wallet.findOne({ userId: res.locals.userId });
-    if (!wallet || wallet.balance < amount) {
-      return res.status(400).json({ error: "Insufficient balance or wallet not found" });
-    }
-
-    // Deduct from wallet and add the donation to the NGO
-    wallet.balance -= amount;
-    wallet.transactions.push({ type: "donation", amount });
-    await wallet.save();
-
-    // Create a new donation record
-    const donation = new Donation({
-      donorId: res.locals.userId,
-      impacteeId,
-      ngoId: ngo._id, // Associated with the NGO through the impactee
-      amount,
-      status: "Pending",
-    });
-    await donation.save();
-
-    res.status(200).json({ message: "Donation successful", donation });
-  } catch (error) {
-    console.error("Error making donation:", error);
-    res.status(500).json({ error: "Failed to make donation", details: error.message });
-  }
-};
 
   
   let addImpacteeRequest = async (req, res) => {
@@ -263,6 +243,93 @@ const getDonorDonations = async (req, res) => {
   }
 };
 
+// Donate to NGO
+const donateToNGO = async (req, res) => {
+  try {
+    const { amount, ngoId } = req.body;
+
+    // Check if the NGO exists
+    const ngo = await NGO.findById(ngoId);
+    if (!ngo) {
+      return res.status(404).json({ error: "NGO not found" });
+    }
+
+    // Check the donor's wallet balance
+    const wallet = await Wallet.findOne({ userId: res.locals.userId });
+    if (!wallet || wallet.balance < amount) {
+      return res.status(400).json({ error: "Insufficient balance" });
+    }
+
+    // Deduct from wallet and add the donation
+    wallet.balance -= amount;
+    wallet.transactions.push({ type: "donation", amount, ngoId });
+    await wallet.save();
+
+    // Create a new donation record for NGO
+    const donation = new Donation({
+      donorId: res.locals.userId,
+      ngoId,
+      amount,
+      status: "Pending",
+    });
+    await donation.save();
+
+    // Send SMS to the donor and NGO
+    //const message = `You have donated ${amount} to the NGO ${ngo.name}. Thank you for your contribution!`;
+    //await SMSService.sendSMS(res.locals.userPhone, message); // Notify the donor
+    //await SMSService.sendSMS(ngo.contactNumber, `You have received a donation of ${amount} from a donor.`); // Notify the NGO
+
+    res.status(200).json({ message: "Donation to NGO successful", donation });
+  } catch (error) {
+    console.error("Error donating to NGO:", error);
+    res.status(500).json({ error: "Failed to donate to NGO", details: error.message });
+  }
+};
+
+// Donate to Supplier
+const donateToSupplier = async (req, res) => {
+  try {
+    const { amount, supplierId } = req.body;
+
+    // Check if the Supplier exists
+    const supplier = await Supplier.findById(supplierId);
+    if (!supplier) {
+      return res.status(404).json({ error: "Supplier not found" });
+    }
+
+    // Check the donor's wallet balance
+    const wallet = await Wallet.findOne({ userId: res.locals.userId });
+    if (!wallet || wallet.balance < amount) {
+      return res.status(400).json({ error: "Insufficient balance" });
+    }
+
+    // Deduct from wallet and add the donation
+    wallet.balance -= amount;
+    wallet.transactions.push({ type: "donation", amount, supplierId });
+    await wallet.save();
+
+    // Create a new donation record for Supplier
+    const donation = new Donation({
+      donorId: res.locals.userId,
+      supplierId,
+      amount,
+      status: "Pending",
+    });
+    await donation.save();
+
+    // Send SMS to the donor and Supplier
+    //const message = `You have donated ${amount} to the Supplier ${supplier.name}. Thank you for your contribution!`;
+    //await SMSService.sendSMS(res.locals.userPhone, message); // Notify the donor
+    //await SMSService.sendSMS(supplier.contactNumber, `You have received a donation of ${amount} from a donor.`); // Notify the Supplier
+
+    res.status(200).json({ message: "Donation to Supplier successful", donation });
+  } catch (error) {
+    console.error("Error donating to Supplier:", error);
+    res.status(500).json({ error: "Failed to donate to Supplier", details: error.message });
+  }
+};
+
+
 module.exports = {
   getDonorProfile,
   updateDonorProfile,
@@ -274,5 +341,8 @@ module.exports = {
   withdrawWalletAmount,
   getImpactees,
   getDonorDonations,
-  donateToNGO
+  donateToNGO,
+  donateToSupplier,
+  getAllNGOs,
+  getAllSuppliers
 };

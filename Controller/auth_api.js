@@ -313,20 +313,23 @@ const UpdateUserPassword = async (req, res) => {
 
 const ProtectedRoute = (req, res) => {
   const decodedUserId = res.locals.userId; // The ID from the decoded token
+  console.log('Decoded User ID:', decodedUserId);
   const { userId } = req.body; // Expecting userId from the request body
+  console.log('Request Body User ID:', userId);
 
-  // Check if the IDs match
-  if (decodedUserId === userId) {
+  // Check if the IDs match after converting decodedUserId to a string
+  if (decodedUserId.toString() === userId) {
     return res.status(200).json({
       message: 'Token is valid',
       userId: decodedUserId,
       userFullName: res.locals.userFullName,
-      role: res.locals.role, // Assuming role is also in the token (you can add it to the payload when generating the token)
+      role: res.locals.role, // Assuming role is also in the token payload
     });
   } else {
     return res.status(401).json({ message: 'Access denied: Invalid user ID' });
   }
 };
+
 
 
 

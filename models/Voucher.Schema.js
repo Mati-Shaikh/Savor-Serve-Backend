@@ -1,14 +1,35 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const voucherSchema = mongoose.Schema(
-  {
-    trackingId: { type: String, unique: true, required: true },
-    supplierId: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', required: true },
-    redeemed: { type: Boolean, default: false },
-    redeemedAt: { type: Date },
-    beneficiaryId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },  // beneficiary who redeemed it
+const voucherSchema = mongoose.Schema({
+  amount: {
+    type: Number,
+    required: true,
   },
-  { timestamps: true }
-);
+  shop: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Shop",
+    required: true, // The shop to which the voucher is assigned
+  },
+  needyIndividual: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "NeedyIndividual",
+    required: true, // The needy individual who will redeem the voucher
+  },
+  donorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true, // The donor who creates the voucher
+  },
+  status: {
+    type: String,
+    enum: ["Pending", "Received"],
+    default: "Pending", // Status of the voucher
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
 
-module.exports = mongoose.model('Voucher', voucherSchema);
+const Voucher = mongoose.model("Voucher", voucherSchema);
+module.exports = Voucher;

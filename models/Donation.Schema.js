@@ -6,13 +6,21 @@ const donationSchema = mongoose.Schema({
     ref: "User", // References the User schema
     required: true,
   },
+  amount: {
+    type: Number,
+    required: true,
+  },
   impacteeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User", // Could reference needy individuals
   },
-  amount: {
-    type: Number,
-    required: true,
+  ngoId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "NGO", // References the NGO schema (if donation is for an NGO)
+  },
+  supplierId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Supplier", // References the Supplier schema (if donation is for a Supplier)
   },
   date: {
     type: Date,
