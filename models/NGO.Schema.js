@@ -16,25 +16,23 @@ const ngoSchema = mongoose.Schema(
     website: { type: String },
     causes: [
       {
-        title: { type: String, required: true },
-        description: { type: String, required: true },
-        goal: { type: Number, required: true },
-        timeline: { type: Date, required: true },
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "Cause",  // Referencing the Cause model
       },
     ],
-    packages: [
-      {
-        title: { type: String, required: true },
-        description: { type: String, required: true },
-        price: { type: Number, required: true },
-        causeId: { type: mongoose.Schema.Types.ObjectId, ref: "Cause" },  // Reference to Cause model
-      },
-    ],
+    // packages: [
+    //   {
+    //     title: { type: String, required: true },
+    //     description: { type: String, required: true },
+    //     price: { type: Number, required: true },
+    //     causeId: { type: mongoose.Schema.Types.ObjectId, ref: "Cause" },  // Reference to Cause model
+    //   },
+    // ],
     impactees: [
       {
         name: { type: String, required: true },
         phone: { type: String, required: true },
-        cnic: { type: String, unique: true, required: true },
+        cnic: { type: String, required: false, unique: true, sparse: true },
       },
     ],
     donations: [
@@ -43,7 +41,7 @@ const ngoSchema = mongoose.Schema(
         amount: { type: Number, required: true },
         date: { type: Date, default: Date.now },
       },
-    ], // Track donations to the NGO
+    ], 
   },
   { timestamps: true }
 );
