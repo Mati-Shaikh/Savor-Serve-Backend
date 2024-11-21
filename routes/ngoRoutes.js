@@ -13,6 +13,7 @@ const {
   getImpactees,
   addDonation,
   getTotalDonations,
+  getNgo
 } = require("../Controller/ngoController");
 
 // NGO Registration & Profile Management
@@ -30,6 +31,9 @@ router.get("/total-donations", verifyToken, checkRole(["NGO"]), getTotalDonation
 // Impactee Management
 router.post("/addimpactee/:ngoId/impactees", verifyToken, checkRole(["NGO"]), addImpactee);
 router.get("/getimpactees/:ngoId/impactees", verifyToken, checkRole(["NGO"]), getImpactees);
+
+
+router.get("/getNGO/:ngoId", verifyToken, checkRole(["NGO"]), getNgo);
 
 
 //This Route Might not make sense accoring to my POV

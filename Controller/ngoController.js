@@ -119,47 +119,64 @@ let getImpactees = async (req, res) => {
   }
 };
 
-
-let addCause = async (req, res) => {
-  const { ngoId } = req.params;  // NGO ID from the URL
-  const { title, description, goal, timeline } = req.body;
-
+const getNgo = async (req, res) => {
   try {
-    // Validate ngoId
-    if (!mongoose.Types.ObjectId.isValid(ngoId)) {
-      return res.status(400).json({ message: 'Invalid NGO ID format' });
+    const { ngoId } = req.params; // Extract `ngoId` from request parameters
+
+    if (!ngoId) {
+      return res.status(400).json({ message: "NGO ID is required" }); // Handle missing NGO ID
     }
 
-    // Find NGO
-    const ngo = await NGO.findById(ngoId);
+    // Find NGO by ID and populate references if needed
+    const ngo = await NGO.findById(ngoId)
+      .populate("causes") // Populate referenced causes
+      .populate("donations.donorId", "name email") // Populate donor details (example fields)
+      .exec();
+
     if (!ngo) {
-      return res.status(404).json({ message: 'NGO not found' });
+      return res.status(404).json({ message: "NGO not found" }); // Handle NGO not found
     }
-    // console.log(ngo);
-    
 
-    // Create a new Cause instance
-    const newCause = new Cause({
-      title,
-      description,
-      goal,
-      timeline,
-    });
-
-    // Save the new Cause to the database
-    await newCause.save();
-
-    // Add the new cause to the NGO's causes array
-    ngo.causes.push(newCause._id);  // Push only the _id of the Cause
-
-    // Save the updated NGO document
-    await ngo.save();
-
-    res.status(201).json({ message: 'Cause added successfully', data: newCause });
-  } catch (err) {
-    res.status(500).json({ message: 'Error adding cause', error: err.message });
+    res.status(200).json({ success: true, data: ngo }); // Return the NGO data
+  } catch (error) {
+    // Handle server errors
+    res.status(500).json({ message: "Error retrieving NGO data", error: error.message });
   }
 };
+
+
+
+const addCause = async (req, res) => {
+  const { ngoId } = req.params; // Get NGO ID from URL params
+  const { title, description, goal, timeline } = req.body; // Cause details
+
+  try {
+    // Check if NGO exists
+    const ngo = await NGO.findById(ngoId);
+    if (!ngo) {
+      return res.status(404).json({ message: "NGO not found" });
+    }
+
+    // Create the new cause
+    const cause = new Cause({ title, description, goal, timeline });
+
+    // Save the cause
+    const savedCause = await cause.save();
+
+    // Add the cause to the NGO's causes array
+    ngo.causes.push(savedCause._id);
+    await ngo.save();
+
+    res.status(201).json({
+      message: "Cause added to NGO successfully",
+      cause: savedCause,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error adding cause to NGO", error });
+  }
+};
+
+
 
 
 
@@ -292,4 +309,5 @@ module.exports = {
   getDonationDashboard,
   addDonation,
   getTotalDonations,
+  getNgo
 };
