@@ -45,26 +45,25 @@ let registerNGO = async (req, res) => {
     res.status(500).json({ error: "Error registering NGO", details: error.message });
   }
 };
-
 let updateNGOProfile = async (req, res) => {
-  const { ngoId } = req.params;  // Retrieve NGO ID from the URL parameters
   const { name, description, address, phone, website } = req.body;
 
   try {
-    // Ensure the logged-in NGO matches the ngoId in the URL
-    const ngo = await NGO.findById(ngoId);
-    if (!ngo) {
-      return res.status(404).json({ message: 'NGO not found' });
-    }
-
-    // Ensure the user is authenticated and has the right access
+    // Ensure the user is authenticated
     if (!res.locals.userId) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Check if the logged-in user (from res.locals.userId) is the owner of this NGO
-    if (ngo.userId.toString() !== res.locals.userId.toString()) {  // Ensure the logged-in user is the owner of this NGO
-      return res.status(403).json({ message: 'Unauthorized' });
+    // Fetch the user data from the database using res.locals.userId
+    const user = await User.findById(res.locals.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Find the NGO associated with the authenticated user
+    const ngo = await NGO.findOne({ userId: user._id });
+    if (!ngo) {
+      return res.status(404).json({ message: 'NGO not found for this user' });
     }
 
     // Update the NGO's profile with the provided data or keep existing values
@@ -82,19 +81,26 @@ let updateNGOProfile = async (req, res) => {
   }
 };
 
-
 let addImpactee = async (req, res) => {
-  const { ngoId } = req.params;
   const { name, phone, cnic } = req.body;
 
   try {
-    const ngo = await NGO.findById(ngoId);
-    if (!ngo) {
-      return res.status(404).json({ message: 'NGO not found' });
+    // Ensure the user is authenticated
+    if (!res.locals.userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const newImpactee = { name, phone, cnic, ngo: ngoId };
+    // Find the NGO associated with the authenticated user
+    const ngo = await NGO.findOne({ userId: res.locals.userId });
+    if (!ngo) {
+      return res.status(404).json({ message: 'NGO not found for this user' });
+    }
+
+    // Create the new impactee
+    const newImpactee = { name, phone, cnic, ngo: ngo._id };
     ngo.impactees.push(newImpactee);
+
+    // Save the NGO with the added impactee
     await ngo.save();
 
     res.status(201).json({ message: 'Impactee added successfully', data: newImpactee });
@@ -103,14 +109,17 @@ let addImpactee = async (req, res) => {
   }
 };
 
-
 let getImpactees = async (req, res) => {
-  const { ngoId } = req.params;
-
   try {
-    const ngo = await NGO.findById(ngoId).populate('impactees');
+    // Ensure the user is authenticated
+    if (!res.locals.userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // Find the NGO associated with the authenticated user
+    const ngo = await NGO.findOne({ userId: res.locals.userId }).populate('impactees');
     if (!ngo) {
-      return res.status(404).json({ message: 'NGO not found' });
+      return res.status(404).json({ message: 'NGO not found for this user' });
     }
 
     res.status(200).json({ impactees: ngo.impactees });
@@ -118,23 +127,21 @@ let getImpactees = async (req, res) => {
     res.status(500).json({ message: 'Error fetching impactees', error: err.message });
   }
 };
-
 const getNgo = async (req, res) => {
   try {
-    const { ngoId } = req.params; // Extract `ngoId` from request parameters
-
-    if (!ngoId) {
-      return res.status(400).json({ message: "NGO ID is required" }); // Handle missing NGO ID
+    // Ensure the user is authenticated
+    if (!res.locals.userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Find NGO by ID and populate references if needed
-    const ngo = await NGO.findById(ngoId)
+    // Find the NGO associated with the authenticated user
+    const ngo = await NGO.findOne({ userId: res.locals.userId })
       .populate("causes") // Populate referenced causes
       .populate("donations.donorId", "name email") // Populate donor details (example fields)
       .exec();
 
     if (!ngo) {
-      return res.status(404).json({ message: "NGO not found" }); // Handle NGO not found
+      return res.status(404).json({ message: "NGO not found for this user" });
     }
 
     res.status(200).json({ success: true, data: ngo }); // Return the NGO data
@@ -147,14 +154,18 @@ const getNgo = async (req, res) => {
 
 
 const addCause = async (req, res) => {
-  const { ngoId } = req.params; // Get NGO ID from URL params
   const { title, description, goal, timeline } = req.body; // Cause details
 
   try {
-    // Check if NGO exists
-    const ngo = await NGO.findById(ngoId);
+    // Ensure the user is authenticated
+    if (!res.locals.userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // Find the NGO associated with the authenticated user
+    const ngo = await NGO.findOne({ userId: res.locals.userId });
     if (!ngo) {
-      return res.status(404).json({ message: "NGO not found" });
+      return res.status(404).json({ message: 'NGO not found for this user' });
     }
 
     // Create the new cause
@@ -168,11 +179,11 @@ const addCause = async (req, res) => {
     await ngo.save();
 
     res.status(201).json({
-      message: "Cause added to NGO successfully",
+      message: 'Cause added to NGO successfully',
       cause: savedCause,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error adding cause to NGO", error });
+    res.status(500).json({ message: 'Error adding cause to NGO', error });
   }
 };
 
@@ -181,46 +192,46 @@ const addCause = async (req, res) => {
 
 
 let addPackage = async (req, res) => {
-  const { ngoId, causeId } = req.params; // NGO and Cause ID should be passed in the URL
-  const { title, description, price } = req.body;
+  const { title, description, price } = req.body; // Package details
 
   try {
-    // Validate ngoId and causeId
-    if (!mongoose.Types.ObjectId.isValid(ngoId) || !mongoose.Types.ObjectId.isValid(causeId)) {
-      return res.status(400).json({ message: 'Invalid NGO or Cause ID format' });
+    // Ensure the user is authenticated
+    if (!res.locals.userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Find the NGO by its ObjectId
-    const ngo = await NGO.findById(ngoId);
+    // Find the NGO associated with the authenticated user
+    const ngo = await NGO.findOne({ userId: res.locals.userId });
     if (!ngo) {
-      return res.status(404).json({ message: 'NGO not found' });
+      return res.status(404).json({ message: 'NGO not found for this user' });
     }
-    let foundCause = await Cause.findById(causeId);
-    console.log('cause is:', foundCause);
-    
 
-    // Find the Cause by its ObjectId and update directly
-    const updatedCause = await Cause.findOneAndUpdate(
-      { _id: causeId },
-      {
-        $push: {
-          packages: { title, description, price }  // Add new package to the packages array
-        }
-      },
-      { new: true }  // Return the updated cause
-    );
+    // If there are no causes, return an error
+    if (ngo.causes.length === 0) {
+      return res.status(400).json({ message: 'No causes found for this NGO' });
+    }
 
-    if (!updatedCause) {
+    // Assuming you want to add the package to the first cause
+    const cause = await Cause.findById(ngo.causes[0]);
+    if (!cause) {
       return res.status(404).json({ message: 'Cause not found' });
     }
 
-    // Respond with success
-    res.status(201).json({ message: 'Package added successfully', data: { title, description, price } });
+    // Add the new package to the cause's packages array
+    cause.packages.push({ title, description, price });
+    await cause.save();
+
+    res.status(201).json({
+      message: 'Package added to cause successfully',
+      package: { title, description, price },
+    });
   } catch (err) {
     // Catch any errors and return a response
     res.status(500).json({ message: 'Error adding package', error: err.message });
   }
 };
+
+
 
 
 
