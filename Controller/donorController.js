@@ -243,7 +243,6 @@ const getDonorDonations = async (req, res) => {
   }
 };
 
-// Donate to NGO
 const donateToNGO = async (req, res) => {
   try {
     const { amount, ngoId } = req.body;
@@ -260,33 +259,45 @@ const donateToNGO = async (req, res) => {
       return res.status(400).json({ error: "Insufficient balance" });
     }
 
-    // Deduct from wallet and add the donation
+    // Deduct from wallet and add the transaction
     wallet.balance -= amount;
     wallet.transactions.push({ type: "donation", amount, ngoId });
     await wallet.save();
 
     // Create a new donation record for NGO
-    const donation = new Donation({
+    const donation = {
+      donorId: res.locals.userId,
+      amount,
+      date: new Date(),
+    };
+
+    // Add the donation to the NGO's donations field
+    ngo.donations.push(donation);
+    await ngo.save();
+
+    // Optionally, create a separate record in the Donation schema
+    const newDonation = new Donation({
       donorId: res.locals.userId,
       ngoId,
       amount,
       status: "Pending",
     });
-    await donation.save();
+    await newDonation.save();
 
     // Send SMS to the donor and NGO
-    //const message = `You have donated ${amount} to the NGO ${ngo.name}. Thank you for your contribution!`;
-    //await SMSService.sendSMS(res.locals.userPhone, message); // Notify the donor
-    //await SMSService.sendSMS(ngo.contactNumber, `You have received a donation of ${amount} from a donor.`); // Notify the NGO
+    // Uncomment and configure SMS service if needed
+    // const message = `You have donated ${amount} to the NGO ${ngo.name}. Thank you for your contribution!`;
+    // await SMSService.sendSMS(res.locals.userPhone, message); // Notify the donor
+    // await SMSService.sendSMS(ngo.phone, `You have received a donation of ${amount} from a donor.`); // Notify the NGO
 
-    res.status(200).json({ message: "Donation to NGO successful", donation });
+    res.status(200).json({ message: "Donation to NGO successful", donation: newDonation });
   } catch (error) {
     console.error("Error donating to NGO:", error);
     res.status(500).json({ error: "Failed to donate to NGO", details: error.message });
   }
 };
 
-// Donate to Supplier
+
 const donateToSupplier = async (req, res) => {
   try {
     const { amount, supplierId } = req.body;
@@ -303,26 +314,37 @@ const donateToSupplier = async (req, res) => {
       return res.status(400).json({ error: "Insufficient balance" });
     }
 
-    // Deduct from wallet and add the donation
+    // Deduct from wallet and add the transaction
     wallet.balance -= amount;
     wallet.transactions.push({ type: "donation", amount, supplierId });
     await wallet.save();
 
-    // Create a new donation record for Supplier
-    const donation = new Donation({
+    // Add the donation to the Supplier's donations array
+    const donation = {
+      donorId: res.locals.userId,
+      amount,
+      date: new Date(),
+    };
+
+    supplier.donations.push(donation);
+    await supplier.save();
+
+    // Optionally, create a separate record in the Donation schema
+    const newDonation = new Donation({
       donorId: res.locals.userId,
       supplierId,
       amount,
       status: "Pending",
     });
-    await donation.save();
+    await newDonation.save();
 
-    // Send SMS to the donor and Supplier
-    //const message = `You have donated ${amount} to the Supplier ${supplier.name}. Thank you for your contribution!`;
-    //await SMSService.sendSMS(res.locals.userPhone, message); // Notify the donor
-    //await SMSService.sendSMS(supplier.contactNumber, `You have received a donation of ${amount} from a donor.`); // Notify the Supplier
+    // Send SMS to the donor and Supplier (if needed)
+    // Uncomment and configure SMS service if needed
+    // const message = `You have donated ${amount} to the Supplier ${supplier.storeName}. Thank you for your contribution!`;
+    // await SMSService.sendSMS(res.locals.userPhone, message); // Notify the donor
+    // await SMSService.sendSMS(supplier.contactNumber, `You have received a donation of ${amount} from a donor.`); // Notify the Supplier
 
-    res.status(200).json({ message: "Donation to Supplier successful", donation });
+    res.status(200).json({ message: "Donation to Supplier successful", donation: newDonation });
   } catch (error) {
     console.error("Error donating to Supplier:", error);
     res.status(500).json({ error: "Failed to donate to Supplier", details: error.message });

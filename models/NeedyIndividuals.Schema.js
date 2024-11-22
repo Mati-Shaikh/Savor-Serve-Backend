@@ -1,28 +1,14 @@
 const mongoose = require("mongoose");
 
-const needyIndividualSchema = mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
+const needyIndividualSchema = mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    address: { type: String, required: true },
+    contactNumber: { type: String, required: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // Admin who created the record
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // Admin who last updated the record
   },
-  address: {
-    type: String,
-    required: true,
-  },
-  contactNumber: {
-    type: String,
-    required: true,
-  },
-  ngo: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "NGO", // Optional link to NGO
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  { timestamps: true }
+);
 
-const NeedyIndividual = mongoose.model("NeedyIndividual", needyIndividualSchema);
-
-module.exports = NeedyIndividual;
+module.exports = mongoose.model("NeedyIndividual", needyIndividualSchema);
