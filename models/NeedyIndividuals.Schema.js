@@ -5,8 +5,8 @@ const needyIndividualSchema = mongoose.Schema(
     name: { type: String, required: true },
     address: { type: String, required: true },
     contactNumber: { type: String, required: true },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // Admin who created the record
-    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // Admin who last updated the record
+    createdBy: { type: mongoose.Schema.Types.ObjectId}, // Admin who created the record
+    updatedBy: { type: mongoose.Schema.Types.ObjectId}, // Admin who last updated the record
   },
   { timestamps: true }
 );

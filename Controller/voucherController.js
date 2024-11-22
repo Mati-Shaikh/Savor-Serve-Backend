@@ -4,11 +4,20 @@ const NeedyIndividual = require("../models/NeedyIndividuals.Schema");
 const User = require("../models/User.schema");
 const SMSService = require("../Services/smsService"); // A custom SMS service
 
-// Create a Voucher
+// Create a Voucher (Only Donors can create)
 const createVoucher = async (req, res) => {
   try {
     const { amount, needyIndividualId, shopId } = req.body;
-    
+
+    // Get user ID from the token (assumes userId is set in `res.locals` via middleware)
+    const userId = res.locals.userId;
+
+    // Verify user role (only donors can create vouchers)
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(403).json({ error: "Only donors are allowed to create vouchers" });
+    }
+
     // Check if the needy individual exists and is verified
     const needyIndividual = await NeedyIndividual.findById(needyIndividualId);
     if (!needyIndividual || !needyIndividual.isVerified) {
@@ -26,21 +35,13 @@ const createVoucher = async (req, res) => {
       amount,
       needyIndividual: needyIndividualId,
       shop: shopId,
-      donorId: res.locals.userId, // The donor is taken from the logged-in user
+      donorId: userId, // Donor ID from logged-in user
+      status: "Pending", // Default status
     });
-    
+
     await voucher.save();
 
-    // Send voucher details to the needy individual via SMS
-    const message = `You have received a voucher worth ${amount} for use at ${shop.name}. Please visit the shop to redeem.`;
-    await SMSService.sendSMS(needyIndividual.phone, message);
-
-    // Notify the shopkeeper of the new voucher
-    const shopkeeper = shop.owner;
-    const notificationMessage = `New voucher of ${amount} assigned to your shop for ${needyIndividual.name}.`;
-    // Send notification to the shopkeeper (this can be a dashboard notification or email, depending on your system)
-    await SMSService.sendSMS(shopkeeper.phone, notificationMessage);
-
+    
     res.status(201).json({ message: "Voucher created successfully", voucher });
   } catch (error) {
     console.error("Error creating voucher:", error);
@@ -48,10 +49,11 @@ const createVoucher = async (req, res) => {
   }
 };
 
-// Update Voucher Status (Redeemed)
+// Update Voucher Status (Shopkeeper or Admin)
 const updateVoucherStatus = async (req, res) => {
   try {
     const { voucherId, status } = req.body;
+    const userId = res.locals.userId;
 
     if (!["Pending", "Received"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
@@ -62,26 +64,50 @@ const updateVoucherStatus = async (req, res) => {
       return res.status(404).json({ error: "Voucher not found" });
     }
 
-    // Only the admin or the shopkeeper can update the status to 'Received'
+    // Verify that only the shopkeeper or admin can update the status
     const shop = await Shop.findById(voucher.shop);
-    if (status === "Received" && (res.locals.userId !== shop.owner.toString())) {
-      return res.status(403).json({ error: "Only the shopkeeper can mark the voucher as received" });
+    const user = await User.findById(userId);
+    const isShopkeeper = shop && shop.owner.toString() === userId;
+    const isAdmin = user && user.role === "Admin";
+
+    if (status === "Received" && !isShopkeeper && !isAdmin) {
+      return res.status(403).json({
+        error: "Only the shopkeeper or an admin can mark the voucher as received",
+      });
     }
 
     voucher.status = status;
     await voucher.save();
 
-    res.status(200).json({ message: "Voucher status updated", voucher });
+    res.status(200).json({ message: "Voucher status updated successfully", voucher });
   } catch (error) {
     console.error("Error updating voucher status:", error);
     res.status(500).json({ error: "Error updating voucher status", details: error.message });
   }
 };
 
-// Track Voucher History (for Admin & Shopkeeper)
+// Track Voucher History (For Admin and Shopkeepers)
 const trackVoucherHistory = async (req, res) => {
   try {
-    const vouchers = await Voucher.find({});
+    const userId = res.locals.userId;
+    const user = await User.findById(userId);
+
+    // Allow Admins to see all vouchers, Shopkeepers see only their shop's vouchers
+    let query = {};
+    if (user.role === "Shopkeeper") {
+      const shop = await Shop.findOne({ owner: userId });
+      if (!shop) {
+        return res.status(403).json({ error: "You are not associated with any shop" });
+      }
+      query.shop = shop._id;
+    } else if (user.role !== "Admin") {
+      return res.status(403).json({ error: "Unauthorized access to voucher history" });
+    }
+
+    const vouchers = await Voucher.find(query)
+      .populate("needyIndividual", "name phone")
+      .populate("shop", "name")
+      .populate("donorId", "name email");
 
     if (!vouchers || vouchers.length === 0) {
       return res.status(404).json({ error: "No vouchers found" });
