@@ -26,7 +26,7 @@ router.get("/donors", verifyToken, checkRole(["Admin"]), getAllDonors);
 router.get("/ngos", verifyToken, checkRole(["Admin"]), getAllNGOs);
 
 // Get all Suppliers (Grocery Shops)
-router.get("/suppliers", verifyToken, checkRole(["Admin"]), getAllSuppliers);
+router.get("/suppliers", verifyToken, getAllSuppliers);
 
 // Update Donor Info
 router.put("/donors/:id", verifyToken, checkRole(["Admin"]), updateDonor);
