@@ -19,11 +19,6 @@ const {
   getAllSuppliers
 } = require("../Controller/donorController");
 
-const {
-  createVoucher,
-  updateVoucherStatus,
-  trackVoucherHistory
-} = require("../Controller/voucherController"); // Import Voucher controller
 
 
 // Define routes
@@ -43,10 +38,6 @@ router.get("/impactees", verifyToken, checkRole(["Donor"]), getImpactees);
 
 router.get("/donations", verifyToken, checkRole(["Donor"]), getDonationHistory);
 router.get("/donor-donations", verifyToken, checkRole(["Donor"]), getDonorDonations);
-
-router.post("/voucher/create", verifyToken, checkRole(["Donor"]), createVoucher); // Create Voucher
-router.put("/voucher/update-status", verifyToken, checkRole(["Donor", "Shopkeeper"]), updateVoucherStatus); // Update Voucher Status (Received)
-router.get("/voucher/history", verifyToken, checkRole(["Admin", "Shopkeeper", "Donor"]), trackVoucherHistory); // Track Voucher History
 
 
 //get ngos and supplier

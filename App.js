@@ -8,6 +8,7 @@ const NGORoutes = require('./routes/ngoRoutes');
 const SupplierRoutes = require('./routes/supplierRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
 const NeedyIndividual = require('./routes/needyIndividualRoutes');
+const VoucherRoutes = require('./routes/voucherRoutes');
 const cors = require("cors");
 
 dotenv.config();
@@ -31,6 +32,7 @@ app.use("/api/ngo", NGORoutes);
 app.use("/api/supplier", SupplierRoutes);
 app.use("/api/admin", AdminRoutes);
 app.use("/api/needyInd",NeedyIndividual);
+app.use("/api/donor",VoucherRoutes);
 
 // Start the server
 app.listen(process.env.PORT, () => {
