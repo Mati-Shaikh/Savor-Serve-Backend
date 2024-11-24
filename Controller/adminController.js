@@ -2,6 +2,8 @@ const Donor = require('../models/User.schema');  // Model for Donors
 const NGO = require('../models/NGO.Schema');      // Model for NGOs
 const Supplier = require('../models/Supplier.Schema');  // Model for Grocery Suppliers
 const ImpacteeRequest = require("../models/Impactee.Schema");
+const nodemailer = require('nodemailer');
+const User = require('../models/User.schema'); // Adjust the path according to your project structure
 
 
 // Helper function to check if the user is an admin
@@ -275,6 +277,98 @@ const getAllImpactees = async (req, res) => {
     }
   };
 
+  // adminAuthController.js
+
+// Configure nodemailer
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL, // Add these to your .env file
+    pass: process.env.EMAIL_PASSWORD
+  }
+});
+
+// Store OTPs temporarily (In production, use Redis or similar)
+const otpStore = new Map();
+
+const sendAdminOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const userId = res.locals.userId; // Assuming you have authentication middleware
+
+
+    // Verify if the user is actually an admin
+    const user = await User.findById(userId);
+    if (!user || res.locals.userRole !== 'Admin') {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store OTP with email (with 5-minute expiration)
+    otpStore.set(email, {
+      otp,
+      expires: Date.now() + 5 * 60 * 1000
+    });
+
+    // Send email
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: email,
+      subject: 'Admin Verification OTP',
+      html: `
+        <h1>Admin Verification</h1>
+        <p>Your OTP for admin verification is: <strong>${otp}</strong></p>
+        <p>This OTP will expire in 5 minutes.</p>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: 'OTP sent successfully' });
+
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    res.status(500).json({ message: 'Failed to send OTP' });
+  }
+};
+
+const verifyAdminOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const userId = req.user.id;
+
+    // Verify if the user is actually an admin
+    const user = await User.findById(userId);
+    if (!user || user.Role !== 'Admin') {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
+    // Check if OTP exists and is valid
+    const storedOTPData = otpStore.get(email);
+    if (!storedOTPData) {
+      return res.status(400).json({ message: 'OTP expired or invalid' });
+    }
+
+    if (Date.now() > storedOTPData.expires) {
+      otpStore.delete(email);
+      return res.status(400).json({ message: 'OTP has expired' });
+    }
+
+    if (storedOTPData.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    // Clear OTP after successful verification
+    otpStore.delete(email);
+
+    res.status(200).json({ message: 'Admin verified successfully' });
+
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    res.status(500).json({ message: 'Failed to verify OTP' });
+  }
+};
   
 
 module.exports = {
@@ -289,5 +383,7 @@ module.exports = {
   updateNGO,
   updateSupplier,
   getAllImpactees,
-  updateImpacteeStatus
+  updateImpacteeStatus,
+  sendAdminOTP,
+  verifyAdminOTP
 };

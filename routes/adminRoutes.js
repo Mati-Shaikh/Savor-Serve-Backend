@@ -14,7 +14,9 @@ const {
   updateNGO,
   updateSupplier,
   updateImpacteeStatus,
-  getAllImpactees
+  getAllImpactees,
+  sendAdminOTP,
+  verifyAdminOTP
 } = require("../Controller/adminController");
 
 // Admin Routes for CRUD operations
@@ -51,5 +53,9 @@ router.get("/impactees", verifyToken, checkRole(["Admin"]), getAllImpactees);
 
 // Route to update the status of an impactee request
 router.put("/impactees/:id/status",verifyToken, checkRole(["Admin"]), updateImpacteeStatus);
+
+router.post('/send-admin-otp', verifyToken, checkRole(["Admin"]), sendAdminOTP);
+router.post('/verify-admin-otp', verifyToken, checkRole(["Admin"]), verifyAdminOTP);
+
 
 module.exports = router;
