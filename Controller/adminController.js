@@ -81,13 +81,13 @@ const deleteDonor = async (req, res) => {
 const deleteNGO = async (req, res) => {
     try {
       const { id } = req.params;
-      const ngo = await NGO.findById(id);
+      const ngo = await NGO.findByIdAndDelete(id);
   
       if (!ngo) {
         return res.status(404).json({ error: "NGO not found" });
       }
   
-      await ngo.remove(); // Ensures pre-hooks (if any) are triggered
+      //await ngo.remove(); // Ensures pre-hooks (if any) are triggered
       res.status(200).json({ message: "NGO deleted successfully", deletedNGO: ngo });
     } catch (error) {
       res.status(500).json({ error: "Error deleting NGO", details: error.message });
@@ -99,13 +99,13 @@ const deleteNGO = async (req, res) => {
 const deleteSupplier = async (req, res) => {
     try {
       const { id } = req.params;
-      const supplier = await Supplier.findById(id);
+      const supplier = await Supplier.findByIdAndDelete(id);
   
       if (!supplier) {
         return res.status(404).json({ error: "Supplier not found" });
       }
   
-      await supplier.remove(); // Ensures pre-hooks (if any) are triggered
+      //await supplier.remove(); // Ensures pre-hooks (if any) are triggered
       res.status(200).json({ message: "Supplier deleted successfully", deletedSupplier: supplier });
     } catch (error) {
       res.status(500).json({ error: "Error deleting supplier", details: error.message });
