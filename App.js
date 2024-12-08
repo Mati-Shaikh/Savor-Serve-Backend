@@ -9,6 +9,7 @@ const SupplierRoutes = require('./routes/supplierRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
 const NeedyIndividual = require('./routes/needyIndividualRoutes');
 const VoucherRoutes = require('./routes/voucherRoutes');
+const admin = require("./scripts/adminCredentials");
 const cors = require("cors");
 
 dotenv.config();
@@ -20,8 +21,9 @@ mongoose
     //useNewUrlParser: true,
     //useUnifiedTopology: true,
   })
-  .then(() => {
+  .then(async() => {
     console.log("Connected to MongoDB----");
+    await admin();
   })
   .catch((err) => console.error(err)); 
 

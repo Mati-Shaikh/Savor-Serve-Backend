@@ -34,7 +34,7 @@ router.post("/wallet/add", verifyToken, checkRole(["Donor"]), addWalletAmount);
 router.post("/wallet/withdraw", verifyToken, checkRole(["Donor"]), withdrawWalletAmount);
 
 router.post("/impactee-request", verifyToken, checkRole(["Donor"]), addImpacteeRequest);
-router.get("/impactees", verifyToken, checkRole(["Donor"]), getImpactees);
+router.get("/impactees", getImpactees);
 
 router.get("/donations", verifyToken, checkRole(["Donor"]), getDonationHistory);
 router.get("/donor-donations", verifyToken, checkRole(["Donor"]), getDonorDonations);

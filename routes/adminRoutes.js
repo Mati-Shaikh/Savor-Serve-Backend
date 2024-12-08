@@ -49,7 +49,7 @@ router.delete("/ngos/:id", verifyToken, checkRole(["Admin"]), deleteNGO);
 router.delete("/suppliers/:id", verifyToken, checkRole(["Admin"]), deleteSupplier);
 
 // Route to fetch all impactee requests
-router.get("/impactees", verifyToken, checkRole(["Admin"]), getAllImpactees);
+router.get("/impactees",getAllImpactees);
 
 // Route to update the status of an impactee request
 router.put("/impactees/:id/status",verifyToken, checkRole(["Admin"]), updateImpacteeStatus);

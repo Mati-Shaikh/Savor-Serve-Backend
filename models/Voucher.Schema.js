@@ -32,7 +32,7 @@ const voucherSchema = mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ["Individual", "Shop"],
+    enum: ["Individual", "needy"],
     required: true, // Ensure voucher type is specified
   },
   createdAt: {

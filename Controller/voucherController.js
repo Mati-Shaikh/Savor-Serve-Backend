@@ -64,6 +64,70 @@ const createVoucher = async (req, res) => {
     res.status(500).json({ error: "Error creating voucher", details: error.message });
   }
 };
+const createVoucherNeedy = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const { needyId } = req.params; // Get needy individual's ID from URL params
+
+    const userId = res.locals.userId;
+
+    // Verify the user is a donor
+    const user = await User.findById(userId);
+    if (!user || user.Role !== "Donor") {
+      return res.status(403).json({ error: "Only donors are allowed to create vouchers" });
+    }
+
+    // Find the needy individual by ID
+    const needyIndividual = await NeedyIndividual.findById(needyId);
+    if (!needyIndividual) {
+      return res.status(404).json({ error: "Needy individual not found" });
+    }
+
+    // Ensure the donor has sufficient wallet balance
+    const donorWallet = await Wallet.findOne({ userId });
+    if (!donorWallet || donorWallet.balance < amount) {
+      return res.status(400).json({ error: "Insufficient balance in donor's wallet" });
+    }
+
+    // Create the voucher
+    const voucher = new Voucher({
+      amount,
+      needyIndividual: needyId, // Associate voucher with the needy individual's ID
+      donorId: userId, // Associate voucher with the donor's ID
+      status: "Pending", // Default status
+      type: "needy", // Type is "Individual" for needy
+    });
+
+    await voucher.save();
+
+    // Deduct the amount from the donor's wallet
+    donorWallet.balance -= amount;
+    donorWallet.transactions.push({ type: "debit", amount, date: new Date() });
+    await donorWallet.save();
+
+    // Add the amount to the needy individual's wallet
+    const needyWallet = await Wallet.findOne({ userId: needyId });
+    if (!needyWallet) {
+      // Create a wallet if the needy individual doesn't have one
+      const newNeedyWallet = new Wallet({
+        userId: needyId,
+        balance: amount,
+        transactions: [{ type: "credit", amount, date: new Date() }],
+      });
+      await newNeedyWallet.save();
+    } else {
+      needyWallet.balance += amount;
+      needyWallet.transactions.push({ type: "credit", amount, date: new Date() });
+      await needyWallet.save();
+    }
+
+    res.status(201).json({ message: "Voucher created and amounts updated successfully", voucher });
+  } catch (error) {
+    console.error("Error creating voucher:", error);
+    res.status(500).json({ error: "Error creating voucher", details: error.message });
+  }
+};
+
 
 const createVoucherForShop = async (req, res) => {
   try {
@@ -209,4 +273,4 @@ const redeemVoucher = async (req, res) => {
 };
 
 
-module.exports = { createVoucher, createVoucherForShop, updateVoucherStatus, getAllVouchers,redeemVoucher };
+module.exports = {createVoucherNeedy, createVoucher, createVoucherForShop, updateVoucherStatus, getAllVouchers,redeemVoucher };

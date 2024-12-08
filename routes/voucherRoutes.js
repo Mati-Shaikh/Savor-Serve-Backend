@@ -5,6 +5,7 @@ const checkRole = require("../middlewares/checkRole"); // Middleware for role-ba
 
 const {
   createVoucher,
+  createVoucherNeedy,
   createVoucherForShop,
   updateVoucherStatus,
   getAllVouchers,
@@ -20,7 +21,14 @@ router.post(
 );
 
 router.post(
-  "/voucherShop/:shopId",
+  "/voucherNeedy/:needyId",
+  verifyToken, // Ensure the user is authenticated
+  checkRole(["Donor"]), // Only Donors can create vouchers
+  createVoucherNeedy
+);
+
+router.post(
+  "/voucherNeedy/:ShopId",
   verifyToken, // Ensure the user is authenticated
   checkRole(["Donor"]), // Only Donors can create vouchers
   createVoucherForShop
@@ -35,8 +43,7 @@ router.put(
 
 // // Route to track voucher history (Admin and Shopkeeper can view)
 router.get(
-  "/getVouchers",
-  verifyToken, // Ensure the user is authenticated
+  "/getVouchers",// Ensure the user is authenticated
   getAllVouchers
 );
 

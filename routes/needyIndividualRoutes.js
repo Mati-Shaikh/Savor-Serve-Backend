@@ -20,9 +20,7 @@ router.post(
 
 // Route to get all needy individuals (Admin and Donor can view)
 router.get(
-  "/needy",
-  verifyToken,
-  checkRole(["Admin", "Donor"]), // Admin and Donors can access the list
+  "/needy",// Admin and Donors can access the list
   getAllNeedyIndividuals
 );
 
