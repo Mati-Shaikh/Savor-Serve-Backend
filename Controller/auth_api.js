@@ -70,6 +70,33 @@ const RegisterUser = async (req, res) => {
   }
 };
 
+const ResetPassword = async (req, res) => {
+  try {
+    const { Email, NewPassword } = req.body;
+
+    // Check if the user exists by email
+    const user = await User.findOne({ Email });
+    if (!user) {
+      return res.status(400).json({ message: "Email does not exist." });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPass = await bcrypt.hash(NewPassword, salt);
+
+    // Update the user's password in the database
+    user.Password = hashedPass;
+    await user.save(); // Save the updated user record
+
+    return res.status(200).json({ message: "Password has been updated successfully." });
+
+  } catch (err) {
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
+
 
 let DuplicateUser = async (req, res) => {
   try {
@@ -387,4 +414,4 @@ let Deleteuser =  async(req ,res)=>{
 
 
 
-module.exports = { RegisterUser, LoginUser, VerifyUserCredentials, VerifyPIN, UpdateUserPassword , ProtectedRoute, UpdateUserProfile, Deleteuser, GetUserProfile, GoogleAuth, VerifyEmail, DuplicateUser};
+module.exports = { RegisterUser, ResetPassword,LoginUser, VerifyUserCredentials, VerifyPIN, UpdateUserPassword , ProtectedRoute, UpdateUserProfile, Deleteuser, GetUserProfile, GoogleAuth, VerifyEmail, DuplicateUser};

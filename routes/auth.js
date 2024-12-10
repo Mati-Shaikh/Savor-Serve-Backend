@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const verifyToken = require("../middlewares/authentication");
 
-const {RegisterUser, LoginUser, VerifyUserCredentials, UpdateUserPassword, VerifyPIN, ProtectedRoute, GetUserProfile, UpdateUserProfile, GoogleAuth, VerifyEmail, DuplicateUser} = require('../Controller/auth_api')
+const {RegisterUser, ResetPassword, LoginUser, VerifyUserCredentials, UpdateUserPassword, VerifyPIN, ProtectedRoute, GetUserProfile, UpdateUserProfile, GoogleAuth, VerifyEmail, DuplicateUser} = require('../Controller/auth_api')
 
  router.post('/register', RegisterUser);
  router.post('/login', LoginUser);
@@ -15,6 +15,7 @@ const {RegisterUser, LoginUser, VerifyUserCredentials, UpdateUserPassword, Verif
  
  router.post('/getProfile', verifyToken, GetUserProfile);
  router.post('/updateProfile', verifyToken, UpdateUserProfile);
+ router.post('/resetPassword',ResetPassword);
 
  
 
