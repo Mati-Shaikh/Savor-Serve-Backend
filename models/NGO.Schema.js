@@ -20,14 +20,6 @@ const ngoSchema = mongoose.Schema(
         ref: "Cause",  // Referencing the Cause model
       },
     ],
-    // packages: [
-    //   {
-    //     title: { type: String, required: true },
-    //     description: { type: String, required: true },
-    //     price: { type: Number, required: true },
-    //     causeId: { type: mongoose.Schema.Types.ObjectId, ref: "Cause" },  // Reference to Cause model
-    //   },
-    // ],
     impactees: [
       {
         name: { type: String, required: true },

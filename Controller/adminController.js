@@ -4,7 +4,7 @@ const Supplier = require('../models/Supplier.Schema');  // Model for Grocery Sup
 const ImpacteeRequest = require("../models/Impactee.Schema");
 const nodemailer = require('nodemailer');
 const User = require('../models/User.schema'); // Adjust the path according to your project structure
-
+const Donations = require('../models/Donation.Schema');
 
 // Helper function to check if the user is an admin
 const isAdmin = (req, res, next) => {
@@ -15,38 +15,86 @@ const isAdmin = (req, res, next) => {
 };
 
 const getAllDonors = async (req, res) => {
-    try {
-      // Fetch all users (donors) from the database
-      const donors = await Donor.find();  
-      console.log(donors);  // Log all the donors data to check if the role field is correct
-  
-      // Filter only those users whose role is "Donor"
-      const donorList = donors.filter(donor => donor.Role === 'Donor');  // Pay attention to case sensitivity
-  
-      // If no donors with role "Donor" are found
-      if (donorList.length === 0) {
-        return res.status(404).json({ error: 'No donors found' });
-      }
-  
-      // Send the filtered list of donors as the response
-      res.status(200).json({ donors: donorList });
-  
-    } catch (error) {
-      res.status(500).json({ error: 'Error fetching donors', details: error.message });
+  try {
+    // Find all users with the role of "Donor"
+    const donors = await User.find({ Role: "Donor" });
+
+    // If no donors found
+    if (!donors || donors.length === 0) {
+      return res.status(404).json({ error: "No donors found" });
     }
-  };
-  
+
+    // Fetch donations for each donor and include NGO and Supplier details
+    const donorDetails = await Promise.all(
+      donors.map(async (donor) => {
+        // Find donations related to this donor
+        const donations = await Donations.find({ donorId: donor._id })
+          .populate("ngoId", "name") // Populate NGO name only
+          .populate("supplierId", "storeName contactNumber address") // Populate Supplier details
+          .populate("impacteeId", "FirstName LastName Email") // Populate Impactee details
+          .exec();
+
+        // Return donor details along with their donations
+        return {
+          donor: {
+            id: donor._id,
+            firstName: donor.FirstName,
+            lastName: donor.LastName,
+            email: donor.Email,
+            phone: donor.PhoneNumber,
+          },
+          donations: donations.map((donation) => ({
+            id: donation._id,
+            amount: donation.amount,
+            status: donation.status,
+            date: donation.date,
+            ngo: donation.ngoId ? donation.ngoId.name : "N/A",
+            supplier: donation.supplierId
+              ? `${donation.supplierId.storeName} - ${donation.supplierId.contactNumber}`
+              : "N/A",
+            impactee: donation.impacteeId
+              ? `${donation.impacteeId.FirstName} ${donation.impacteeId.LastName}`
+              : "N/A",
+          })),
+        };
+      })
+    );
+
+    // Send response
+    res.status(200).json({ success: true, donors: donorDetails });
+  } catch (error) {
+    // Handle errors
+    res
+      .status(500)
+      .json({ error: "Error fetching donors", details: error.message });
+  }
+};
+
+
+
 
 
 // Get all registered NGOs
 const getAllNGOs = async (req, res) => {
   try {
-    const ngos = await NGO.find();
-    res.status(200).json({ ngos });
+    // Populate causes to include their embedded packages automatically
+    const ngos = await NGO.find()
+      .populate({
+        path: "causes", // Populate the causes field
+      })
+      .populate("donations.donorId", "name email") // Populate donor details if required
+      .exec();
+
+    res.status(200).json({ success: true, ngos });
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching NGOs', details: error.message });
+    res.status(500).json({
+      error: "Error fetching NGOs",
+      details: error.message,
+    });
   }
 };
+
+
 
 // Get all grocery suppliers (shops)
 const getAllSuppliers = async (req, res) => {

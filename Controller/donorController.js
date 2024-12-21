@@ -10,12 +10,23 @@ const Supplier = require('../models/Supplier.Schema');  // Model for Grocery Sup
 // Get all registered NGOs
 const getAllNGOs = async (req, res) => {
   try {
-    const ngos = await NGO.find();
-    res.status(200).json({ ngos });
+    // Populate causes to include their embedded packages automatically
+    const ngos = await NGO.find()
+      .populate({
+        path: "causes", // Populate the causes field
+      })
+      .populate("donations.donorId", "name email") // Populate donor details if required
+      .exec();
+
+    res.status(200).json({ success: true, ngos });
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching NGOs', details: error.message });
+    res.status(500).json({
+      error: "Error fetching NGOs",
+      details: error.message,
+    });
   }
 };
+
 
 // Get all grocery suppliers (shops)
 const getAllSuppliers = async (req, res) => {

@@ -8,7 +8,7 @@ const impacteeRequestSchema = mongoose.Schema({
   },
   impacteeDetails: {
     name: String,
-    phone: String,
+    cnic: String,
     address: String,
   },
   status: {
